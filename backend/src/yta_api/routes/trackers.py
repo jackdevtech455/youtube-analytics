@@ -1,0 +1,97 @@
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from yta_api.db import get_database_session
+from yta_api.schemas import TrackerCreate, TrackerOut, TrackerPatch, VideoTopItem
+from yta_api.services.default_user import get_or_create_default_user
+from yta_api.services.ranking_service import compute_top_videos
+from yta_api.settings import ApiSettings
+from yta_core.youtube.client import YouTubeClient
+from yta_core.db.models import Tracker
+
+router = APIRouter(prefix="/trackers", tags=["trackers"])
+
+@router.post("", response_model=TrackerOut)
+def create_tracker(payload: TrackerCreate, database_session: Session = Depends(get_database_session)) -> Tracker:
+    default_user = get_or_create_default_user(database_session)
+
+    if payload.type.value == "channel" and not payload.channel_id:
+        raise HTTPException(status_code=400, detail="channel_id is required for channel trackers")
+    if payload.type.value == "search" and not payload.search_query:
+        raise HTTPException(status_code=400, detail="search_query is required for search trackers")
+
+
+    if payload.type.value == "channel":
+        api_settings = ApiSettings()
+        youtube_client = YouTubeClient(api_settings.youtube_api_key)
+
+        resolved_channel_id = youtube_client.resolve_channel_id(payload.channel_id or "")
+        if not resolved_channel_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Could not resolve channel identifier. Use a UC… channel id, an @handle, or a channel URL.",
+            )
+        payload = payload.model_copy(update={"channel_id": resolved_channel_id})
+
+    tracker = Tracker(
+        owner_user_id=default_user.id,
+        type=payload.type,
+        channel_id=payload.channel_id,
+        search_query=payload.search_query,
+        top_n=payload.top_n,
+        candidate_pool_size=payload.candidate_pool_size,
+        ranking_metric=payload.ranking_metric,
+        ranking_window_hours=payload.ranking_window_hours,
+        discovery_interval_hours=1 if payload.type.value == "channel" else 24,
+        snapshot_interval_hours=1,
+        is_active=True,
+    )
+
+    database_session.add(tracker)
+    database_session.commit()
+    database_session.refresh(tracker)
+    return tracker
+
+@router.get("", response_model=list[TrackerOut])
+def list_trackers(database_session: Session = Depends(get_database_session)) -> list[Tracker]:
+    default_user = get_or_create_default_user(database_session)
+    return (
+        database_session.execute(
+            select(Tracker).where(Tracker.owner_user_id == default_user.id).order_by(Tracker.created_at.desc())
+        )
+        .scalars()
+        .all()
+    )
+
+@router.patch("/{tracker_id}", response_model=TrackerOut)
+def patch_tracker(tracker_id: int, payload: TrackerPatch, database_session: Session = Depends(get_database_session)) -> Tracker:
+    default_user = get_or_create_default_user(database_session)
+    tracker: Tracker | None = database_session.get(Tracker, tracker_id)
+    if tracker is None or tracker.owner_user_id != default_user.id:
+        raise HTTPException(status_code=404, detail="Tracker not found")
+
+    for field_name, field_value in payload.model_dump(exclude_unset=True).items():
+        setattr(tracker, field_name, field_value)
+
+    database_session.add(tracker)
+    database_session.commit()
+    database_session.refresh(tracker)
+    return tracker
+
+@router.get("/{tracker_id}/top", response_model=list[VideoTopItem])
+def tracker_top(tracker_id: int, database_session: Session = Depends(get_database_session)) -> list[VideoTopItem]:
+    computed_rows = compute_top_videos(database_session, tracker_id)
+    return [
+        VideoTopItem(
+            video_id=row["video_id"],
+            title=row.get("title"),
+            channel_id=row.get("channel_id"),
+            published_at=row.get("published_at"),
+            score=float(row.get("score") or 0.0),
+            latest_view_count=row.get("view_count"),
+            latest_like_count=row.get("like_count"),
+            latest_comment_count=row.get("comment_count"),
+        )
+        for row in computed_rows
+    ]

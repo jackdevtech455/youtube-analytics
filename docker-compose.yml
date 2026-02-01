@@ -1,0 +1,66 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-yta}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-yta}
+      POSTGRES_DB: ${POSTGRES_DB:-yta}
+    volumes:
+      - yta_db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-yta} -d ${POSTGRES_DB:-yta}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
+      SNAPSHOT_INTERVAL_MINUTES: ${SNAPSHOT_INTERVAL_MINUTES:-60}
+      CHANNEL_DISCOVERY_INTERVAL_MINUTES: ${CHANNEL_DISCOVERY_INTERVAL_MINUTES:-60}
+      SEARCH_DISCOVERY_INTERVAL_MINUTES: ${SEARCH_DISCOVERY_INTERVAL_MINUTES:-1440}
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE: http://localhost:${API_PORT:-8000}
+    environment:
+      NEXT_PUBLIC_API_BASE: http://localhost:${API_PORT:-8000}
+    depends_on:
+      - api
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+
+volumes:
+  yta_db:

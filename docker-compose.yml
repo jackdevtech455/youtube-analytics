@@ -7,8 +7,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-yta}
     volumes:
       - yta_db:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-yta} -d ${POSTGRES_DB:-yta}"]
       interval: 5s
@@ -25,8 +25,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "${API_PORT:-8000}:8000"
+    expose:
+      - "8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
       interval: 5s
@@ -59,8 +59,12 @@ services:
       NEXT_PUBLIC_API_BASE: http://localhost:${API_PORT:-8000}
     depends_on:
       - api
-    ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+    expose:
+      - "3000"
 
 volumes:
   yta_db:
+
+networks:
+  proxy:
+    external: true

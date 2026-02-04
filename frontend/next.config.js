@@ -1,1 +1,5 @@
-const nextConfig = { output: 'standalone' }; module.exports = nextConfig;
+const nextConfig = {
+  output: 'standalone'
+};
+
+module.exports = nextConfig;

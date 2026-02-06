@@ -11,6 +11,5 @@ WORKDIR /app/backend
 RUN uv sync
 
 EXPOSE 8000
-COPY backend/docker-entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
+RUN chmod +x ./docker-entrypoint.sh
+ENTRYPOINT ["./docker-entrypoint.sh"]

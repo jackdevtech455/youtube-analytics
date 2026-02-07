@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 20
     networks:
-        - proxy: 
+      - proxy: 
 
   api:
     image: ghcr.io/jackdevtech455/youtube-analytics-api:${IMAGE_TAG:-main}

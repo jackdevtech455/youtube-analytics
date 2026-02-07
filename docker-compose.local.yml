@@ -15,7 +15,7 @@ services:
       timeout: 5s
       retries: 20
     networks:
-        - proxy
+        - yta-network 
 
   api:
     build:
@@ -35,7 +35,7 @@ services:
       timeout: 3s
       retries: 30
     networks:
-      - proxy
+      - yta-network 
 
   worker:
     build:
@@ -52,6 +52,8 @@ services:
         condition: service_healthy
       api:
         condition: service_healthy
+    networks:
+        - yta-network
 
   frontend:
     build:
@@ -63,14 +65,13 @@ services:
       NEXT_PUBLIC_API_BASE: /api
     depends_on:
       - api
-    expose:
-      - "3000"
+    ports:
+      - "3000:3000"
     networks:
-      - proxy
+      - yta-network 
 
 volumes:
   yta_db:
 
 networks:
-  proxy:
-    external: true
+  yta-network:

@@ -1,0 +1,14 @@
+# never copy local/old build artefacts
+.next
+node_modules
+out
+dist
+.turbo
+.cache
+
+# misc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+.env*

@@ -1,3 +1,6 @@
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 import Link from "next/link";
 import { Card } from "./components/Card";
 import { Button } from "./components/Button";
@@ -18,7 +21,7 @@ export default function HomePage() {
             </Link>
             <a
               className="text-sm text-yt-muted hover:text-yt-text underline underline-offset-2"
-              href="http://localhost:8000/docs"
+              href="/api/docs"
               target="_blank"
               rel="noreferrer"
             >

@@ -33,7 +33,7 @@ type Tracker = {
   created_at: string;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/api";
 
 const trackerTypeOptions = [
   { value: "channel", label: "Channel (hourly discovery)" },

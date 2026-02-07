@@ -20,7 +20,7 @@ type VideoTopItem = {
   published_at?: string | null;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "/api";
 
 export default function TrackerDetailPage() {
   const params = useParams();

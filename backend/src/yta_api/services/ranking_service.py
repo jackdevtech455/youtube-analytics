@@ -1,8 +1,15 @@
 from datetime import timedelta
 from sqlalchemy import and_, func, select, Float
 from sqlalchemy.orm import Session
-from yta_core.db.models import RankingMetric, Tracker, TrackerCandidate, Video, VideoSnapshot
+from yta_core.db.models import (
+    RankingMetric,
+    Tracker,
+    TrackerCandidate,
+    Video,
+    VideoSnapshot,
+)
 from yta_core.time_utils import hour_bucket, utc_now
+
 
 def _latest_snapshot_time_subquery():
     return (
@@ -14,6 +21,7 @@ def _latest_snapshot_time_subquery():
         .subquery()
     )
 
+
 def _snapshot_at_or_before_subquery(snapshot_time):
     return (
         select(
@@ -24,6 +32,7 @@ def _snapshot_at_or_before_subquery(snapshot_time):
         .group_by(VideoSnapshot.video_id)
         .subquery()
     )
+
 
 def compute_top_videos(database_session: Session, tracker_id: int) -> list[dict]:
     tracker: Tracker | None = database_session.get(Tracker, tracker_id)
@@ -38,7 +47,9 @@ def compute_top_videos(database_session: Session, tracker_id: int) -> list[dict]
     window_start_bucket = current_bucket - timedelta(hours=window_hours)
 
     candidate_video_ids = (
-        select(TrackerCandidate.video_id).where(TrackerCandidate.tracker_id == tracker_id).subquery()
+        select(TrackerCandidate.video_id)
+        .where(TrackerCandidate.tracker_id == tracker_id)
+        .subquery()
     )
 
     latest_snapshot_time = _latest_snapshot_time_subquery()
@@ -69,7 +80,11 @@ def compute_top_videos(database_session: Session, tracker_id: int) -> list[dict]
         .subquery()
     )
 
-    if ranking_metric in (RankingMetric.views, RankingMetric.likes, RankingMetric.comments):
+    if ranking_metric in (
+        RankingMetric.views,
+        RankingMetric.likes,
+        RankingMetric.comments,
+    ):
         score_column = {
             RankingMetric.views: latest_video_stats.c.view_count,
             RankingMetric.likes: latest_video_stats.c.like_count,
@@ -106,15 +121,12 @@ def compute_top_videos(database_session: Session, tracker_id: int) -> list[dict]
         .subquery()
     )
 
-    start_stats = (
-        select(
-            start_snapshot.c.video_id.label("video_id"),
-            start_snapshot.c.view_count.label("start_view_count"),
-            start_snapshot.c.like_count.label("start_like_count"),
-            start_snapshot.c.comment_count.label("start_comment_count"),
-        )
-        .subquery()
-    )
+    start_stats = select(
+        start_snapshot.c.video_id.label("video_id"),
+        start_snapshot.c.view_count.label("start_view_count"),
+        start_snapshot.c.like_count.label("start_like_count"),
+        start_snapshot.c.comment_count.label("start_comment_count"),
+    ).subquery()
 
     joined = (
         select(
@@ -133,7 +145,11 @@ def compute_top_videos(database_session: Session, tracker_id: int) -> list[dict]
         .subquery()
     )
 
-    if ranking_metric in (RankingMetric.views_delta, RankingMetric.likes_delta, RankingMetric.comments_delta):
+    if ranking_metric in (
+        RankingMetric.views_delta,
+        RankingMetric.likes_delta,
+        RankingMetric.comments_delta,
+    ):
         ending_column = {
             RankingMetric.views_delta: joined.c.view_count,
             RankingMetric.likes_delta: joined.c.like_count,
@@ -145,7 +161,9 @@ def compute_top_videos(database_session: Session, tracker_id: int) -> list[dict]
             RankingMetric.comments_delta: joined.c.start_comment_count,
         }[ranking_metric]
 
-        delta_score = func.coalesce(ending_column, 0) - func.coalesce(starting_column, 0)
+        delta_score = func.coalesce(ending_column, 0) - func.coalesce(
+            starting_column, 0
+        )
         query = (
             select(
                 joined.c.video_id,
@@ -164,7 +182,9 @@ def compute_top_videos(database_session: Session, tracker_id: int) -> list[dict]
         return [dict(row._mapping) for row in rows]
 
     if ranking_metric == RankingMetric.views_velocity:
-        delta_score = func.coalesce(joined.c.view_count, 0) - func.coalesce(joined.c.start_view_count, 0)
+        delta_score = func.coalesce(joined.c.view_count, 0) - func.coalesce(
+            joined.c.start_view_count, 0
+        )
         velocity_score = delta_score / Float(window_hours)
         query = (
             select(

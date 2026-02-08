@@ -7,7 +7,6 @@ Create Date: 2026-01-30
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 
 revision = "0001_initial"
@@ -36,7 +35,9 @@ def upgrade() -> None:
         sa.Column(
             "owner_user_id", sa.Integer(), sa.ForeignKey("users.id"), nullable=False
         ),
-        sa.Column("type", sa.Enum("channel", "search", name="trackertype"), nullable=False),
+        sa.Column(
+            "type", sa.Enum("channel", "search", name="trackertype"), nullable=False
+        ),
         sa.Column("channel_id", sa.String(length=64), nullable=True),
         sa.Column("search_query", sa.String(length=255), nullable=True),
         sa.Column("top_n", sa.Integer(), nullable=False),

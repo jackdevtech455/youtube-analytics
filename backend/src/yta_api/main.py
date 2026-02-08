@@ -18,9 +18,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.get("/health")
 def health_check() -> dict[str, bool]:
     return {"ok": True}
+
 
 app.include_router(trackers_router)
 app.include_router(videos_router)

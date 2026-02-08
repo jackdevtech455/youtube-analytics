@@ -4,6 +4,7 @@ from yta_core.db.models import User
 
 DEFAULT_USER_EMAIL_ADDRESS = "default@local"
 
+
 def get_or_create_default_user(database_session: Session) -> User:
     existing_user = database_session.execute(
         select(User).where(User.email == DEFAULT_USER_EMAIL_ADDRESS)

@@ -13,9 +13,13 @@ class YouTubeClient:
         self._api_key = api_key
 
     def _get(self, path: str, params: dict[str, str | int | None]) -> dict:
-        request_params: dict[str, str | int] = {k: v for k, v in params.items() if v is not None}
+        request_params: dict[str, str | int] = {
+            k: v for k, v in params.items() if v is not None
+        }
         request_params["key"] = self._api_key
-        response = requests.get(f"{YOUTUBE_API_BASE_URL}/{path}", params=request_params, timeout=30)
+        response = requests.get(
+            f"{YOUTUBE_API_BASE_URL}/{path}", params=request_params, timeout=30
+        )
         response.raise_for_status()
         return response.json()
 
@@ -52,7 +56,9 @@ class YouTubeClient:
 
         handle_value = raw_value if raw_value.startswith("@") else f"@{raw_value}"
 
-        payload = self._get("channels", {"part": "id", "forHandle": handle_value, "maxResults": 1})
+        payload = self._get(
+            "channels", {"part": "id", "forHandle": handle_value, "maxResults": 1}
+        )
         items = payload.get("items", [])
         if not items:
             return None
@@ -61,11 +67,15 @@ class YouTubeClient:
         return channel_id if isinstance(channel_id, str) else None
 
     def get_uploads_playlist_id(self, channel_id: str) -> str | None:
-        payload = self._get("channels", {"part": "contentDetails", "id": channel_id, "maxResults": 1})
+        payload = self._get(
+            "channels", {"part": "contentDetails", "id": channel_id, "maxResults": 1}
+        )
         items = payload.get("items", [])
         if not items:
             return None
-        related_playlists = items[0].get("contentDetails", {}).get("relatedPlaylists", {})
+        related_playlists = (
+            items[0].get("contentDetails", {}).get("relatedPlaylists", {})
+        )
         return related_playlists.get("uploads")
 
     def list_playlist_video_ids(self, playlist_id: str, limit: int) -> list[str]:
@@ -75,7 +85,12 @@ class YouTubeClient:
         while len(collected_video_ids) < limit:
             payload = self._get(
                 "playlistItems",
-                {"part": "contentDetails", "playlistId": playlist_id, "maxResults": 50, "pageToken": next_page_token},
+                {
+                    "part": "contentDetails",
+                    "playlistId": playlist_id,
+                    "maxResults": 50,
+                    "pageToken": next_page_token,
+                },
             )
             for item in payload.get("items", []):
                 video_id = item.get("contentDetails", {}).get("videoId")
@@ -126,11 +141,19 @@ class YouTubeClient:
 
         return self._get(
             "videos",
-            {"part": "snippet,contentDetails,statistics", "id": ",".join(video_id_list[:50]), "maxResults": 50},
+            {
+                "part": "snippet,contentDetails,statistics",
+                "id": ",".join(video_id_list[:50]),
+                "maxResults": 50,
+            },
         )
 
     def get_channels_metadata(self, channel_ids: Iterable[str]) -> list[dict]:
-        channel_id_list = [channel_id.strip() for channel_id in channel_ids if channel_id and channel_id.strip()]
+        channel_id_list = [
+            channel_id.strip()
+            for channel_id in channel_ids
+            if channel_id and channel_id.strip()
+        ]
         if not channel_id_list:
             return []
 

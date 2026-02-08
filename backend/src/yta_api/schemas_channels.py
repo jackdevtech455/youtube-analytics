@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 class ChannelMeta(BaseModel):
     channel_id: str
     title: str | None = None

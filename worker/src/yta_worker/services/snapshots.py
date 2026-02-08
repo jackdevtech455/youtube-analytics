@@ -6,18 +6,26 @@ from yta_core.db.models import Tracker, TrackerCandidate, Video, VideoSnapshot
 from yta_core.time_utils import hour_bucket, utc_now
 from yta_core.youtube.client import YouTubeClient
 
+
 def _parse_int(value: object) -> int | None:
     try:
         return int(value)  # type: ignore[arg-type]
     except Exception:
         return None
 
-def snapshot_all_candidate_videos(database_session: Session, youtube_client: YouTubeClient) -> int:
-    distinct_video_ids = database_session.execute(
-        select(distinct(TrackerCandidate.video_id))
-        .join(Tracker, Tracker.id == TrackerCandidate.tracker_id)
-        .where(Tracker.is_active.is_(True))
-    ).scalars().all()
+
+def snapshot_all_candidate_videos(
+    database_session: Session, youtube_client: YouTubeClient
+) -> int:
+    distinct_video_ids = (
+        database_session.execute(
+            select(distinct(TrackerCandidate.video_id))
+            .join(Tracker, Tracker.id == TrackerCandidate.tracker_id)
+            .where(Tracker.is_active.is_(True))
+        )
+        .scalars()
+        .all()
+    )
 
     captured_at_bucket = hour_bucket(utc_now())
     created_snapshots_count = 0
@@ -31,7 +39,9 @@ def snapshot_all_candidate_videos(database_session: Session, youtube_client: You
             if not video_id:
                 continue
 
-            video_row = database_session.get(Video, video_id) or Video(video_id=video_id)
+            video_row = database_session.get(Video, video_id) or Video(
+                video_id=video_id
+            )
             snippet = item.get("snippet") or {}
             statistics = item.get("statistics") or {}
             content_details = item.get("contentDetails") or {}
@@ -43,7 +53,9 @@ def snapshot_all_candidate_videos(database_session: Session, youtube_client: You
             published_at_string = snippet.get("publishedAt")
             if isinstance(published_at_string, str):
                 try:
-                    video_row.published_at = datetime.fromisoformat(published_at_string.replace("Z", "+00:00"))
+                    video_row.published_at = datetime.fromisoformat(
+                        published_at_string.replace("Z", "+00:00")
+                    )
                 except Exception:
                     pass
 

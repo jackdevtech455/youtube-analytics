@@ -2,6 +2,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 from yta_core.db.models import RankingMetric, TrackerType
 
+
 class TrackerCreate(BaseModel):
     type: TrackerType
     channel_id: str | None = None
@@ -11,12 +12,14 @@ class TrackerCreate(BaseModel):
     ranking_metric: RankingMetric = RankingMetric.views
     ranking_window_hours: int | None = Field(default=None, ge=1, le=24 * 90)
 
+
 class TrackerPatch(BaseModel):
     top_n: int | None = Field(default=None, ge=1, le=200)
     candidate_pool_size: int | None = Field(default=None, ge=20, le=1000)
     ranking_metric: RankingMetric | None = None
     ranking_window_hours: int | None = Field(default=None, ge=1, le=24 * 90)
     is_active: bool | None = None
+
 
 class TrackerOut(BaseModel):
     id: int
@@ -31,6 +34,7 @@ class TrackerOut(BaseModel):
     is_active: bool
     created_at: datetime
 
+
 class VideoTopItem(BaseModel):
     video_id: str
     title: str | None
@@ -40,6 +44,7 @@ class VideoTopItem(BaseModel):
     latest_view_count: int | None
     latest_like_count: int | None
     latest_comment_count: int | None
+
 
 class TimeSeriesPoint(BaseModel):
     captured_at: datetime

@@ -1,72 +1,28 @@
 services:
   db:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-yta}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-yta}
-      POSTGRES_DB: ${POSTGRES_DB:-yta}
-    volumes:
-      - yta_db:/var/lib/postgresql/data
     expose:
       - "5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-yta} -d ${POSTGRES_DB:-yta}"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
     networks:
       - proxy 
 
   api:
     image: ghcr.io/jackdevtech455/youtube-analytics-api:${IMAGE_TAG:-main}
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
-    depends_on:
-      db:
-        condition: service_healthy
     expose:
       - "8000"
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
-      interval: 10s
-      timeout: 3s
-      retries: 30
-    restart: unless-stopped
     networks:
       - proxy
 
   worker:
     image: ghcr.io/jackdevtech455/youtube-analytics-worker:${IMAGE_TAG:-main}
-    environment:
-      DATABASE_URL: ${DATABASE_URL}
-      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY}
-      SNAPSHOT_INTERVAL_MINUTES: ${SNAPSHOT_INTERVAL_MINUTES:-60}
-      CHANNEL_DISCOVERY_INTERVAL_MINUTES: ${CHANNEL_DISCOVERY_INTERVAL_MINUTES:-60}
-      SEARCH_DISCOVERY_INTERVAL_MINUTES: ${SEARCH_DISCOVERY_INTERVAL_MINUTES:-1440}
-    depends_on:
-      db:
-        condition: service_healthy
-      api:
-        condition: service_healthy
-    restart: unless-stopped
     networks:
         - proxy
 
   frontend:
     image: ghcr.io/jackdevtech455/youtube-analytics-frontend:${IMAGE_TAG:-main}
-    environment:
-      NEXT_PUBLIC_API_BASE: /api
-    depends_on:
-      - api
     expose:
       - "3000"
-    restart: unless-stopped
     networks:
       - proxy
-
-volumes:
-  yta_db:
 
 networks:
   proxy:

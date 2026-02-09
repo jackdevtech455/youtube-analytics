@@ -1,0 +1,12 @@
+services:
+  debug:
+    build:
+      context: ./debug
+      dockerfile: DEBUG.Dockerfile
+    networks:
+      - debug
+
+networks:
+  debug:
+    external: true
+

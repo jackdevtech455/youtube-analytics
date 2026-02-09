@@ -2,6 +2,8 @@ services:
   db:
     ports:
       - "5432:5432"
+    networks:
+      - debug
 
   api:
     build:
@@ -16,11 +18,15 @@ services:
       - ./backend:/app/backend
     ports:
       - "8000:8000"
+    networks:
+      - debug
 
   worker:
     build:
       context: .
       dockerfile: worker/Dockerfile
+    networks:
+      - debug
 
   frontend:
     build:
@@ -36,3 +42,9 @@ services:
       - ./frontend/:/app
       - /app/node_modules
       - /app/.next
+    networks:
+      - debug
+
+networks:
+  debug:
+    external: true
